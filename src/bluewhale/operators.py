@@ -13,11 +13,11 @@ class Operator:
     op: Callable
     op_str: str
 
-    def __init__(self, *objs) -> None:
+    def __init__(self, *args) -> None:
         self._parent: Union["Expression", "Operator"]
-        self.objs = objs
+        self.args = args
         self.pure = True
-        for obj in self.objs:
+        for obj in self.args:
             if isinstance(obj, Operator):
                 self.pure = False
                 break
@@ -29,7 +29,7 @@ class Operator:
     @parent.setter
     def parent(self, parent: Union["Expression", "Operator"]) -> None:
         self._parent = parent
-        for obj in self.objs:
+        for obj in self.args:
             if isinstance(obj, Operator):
                 obj.parent = self
 
@@ -44,7 +44,7 @@ class Operator:
     @property
     def resolved_objs(self):
         rslvd_objs: List[AnyType] = []
-        for obj in self.objs:
+        for obj in self.args:
             if isinstance(obj, Operator):
                 rslvd_objs.append(bool(obj))
             else:
@@ -57,42 +57,43 @@ class Operator:
         return result
 
     def __str__(self) -> str:
-        if len(self.objs) == 1:
-            return f"{self.op_str}({str(self.objs[0])})"
-        if len(self.objs) == 2:
-            return f"{str(self.objs[0])} {self.op_str} {str(self.objs[1])}"
-        pretty = ", ".join([str(obj) for obj in self.objs])
+        if len(self.args) == 2:
+            return f"{str(self.args[0])} {self.op_str} {str(self.args[1])}"
+        pretty = ", ".join([str(obj) for obj in self.args])
         return f"{self.op_str}({pretty})"
 
     def __repr__(self) -> str:
-        if len(self.objs) == 1:
-            return f"<{type(self).__name__}: {repr(self.objs[0])}>"
-        if len(self.objs) == 2:
+        if len(self.args) == 2:
             return (
-                f"<{type(self).__name__}: {repr(self.objs[0])} {self.op_str} {repr(self.objs[1])}>"
+                f"<{type(self).__name__}: {repr(self.args[0])} {self.op_str} {repr(self.args[1])}>"
             )
-        pretty = ", ".join([repr(obj) for obj in self.objs])
+        pretty = ", ".join([repr(obj) for obj in self.args])
         return f"<{type(self).__name__}: {pretty}>"
 
 
-class All(Operator):
-    op_str = "all"
+class AllAny(Operator):
+
+    def __bool__(self) -> bool:
+        result = self.op(self.resolved_objs)  # type: ignore
+        self.append_report(result)
+        return result
+    
+    def __str__(self):
+        pretty = ", ".join([str(obj) for obj in self.args])
+        return f"{self.op_str}({pretty})"
+
+    def __repr__(self) -> str:
+        pretty = ", ".join([repr(obj) for obj in self.args])
+        return f"<{type(self).__name__}: {pretty}>"
+
+class All(AllAny):
     op = all
-
-    def __bool__(self) -> bool:
-        result = self.op(self.resolved_objs)  # type: ignore
-        self.append_report(result)
-        return result
+    op_str = "all"
 
 
-class Any(Operator):
-    op_str = "any"
+class Any(AllAny):
     op = any
-
-    def __bool__(self) -> bool:
-        result = self.op(self.resolved_objs)  # type: ignore
-        self.append_report(result)
-        return result
+    op_str = "any"
 
 
 class Not(Operator):
@@ -156,7 +157,7 @@ class Contains(Operator):
     op_str = "in"
 
     def __str__(self) -> str:
-        return f"{str(self.objs[1])} {self.op_str} {str(self.objs[0])}"
+        return f"{str(self.args[1])} {self.op_str} {str(self.args[0])}"
 
     def __repr__(self) -> str:
-        return f"<{type(self).__name__}: {repr(self.objs[1])} {self.op_str} {repr(self.objs[0])}>"
+        return f"<{type(self).__name__}: {repr(self.args[1])} {self.op_str} {repr(self.args[0])}>"
