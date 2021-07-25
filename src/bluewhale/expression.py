@@ -3,7 +3,7 @@ from typing import List
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from booleval.operators import Operator
+    from bluewhale.operators import Operator
 
 
 class Expression:
@@ -22,3 +22,9 @@ class Expression:
 
     def __bool__(self) -> bool:
         return bool(self.op)
+
+    def __str__(self) -> str:
+        return str(self.op)
+
+    def __repr__(self) -> str:
+        return f"<Expression: {repr(self.op)}>"
